@@ -1455,9 +1455,19 @@ je_mallocx(size_t size, int flags)
 
 	if (arena_ind != UINT_MAX) {
 		arena = arenas[arena_ind];
+#ifdef JEMALLOC_ENABLE_MEMKIND
+		if ((arena->partition != 0) || (arena_ind < narenas_auto)) {
+			/* default or memkind arenas */
+			try_tcache = true;
+		} else {
+			/* extended arenas */
+			try_tcache = false;
+		}
+#else
 		try_tcache = false;
+#endif
 	} else {
-		arena = NULL;
+		arena = choose_arena(NULL);
 		try_tcache = true;
 	}
 
@@ -1578,7 +1588,7 @@ je_rallocx(void *ptr, size_t size, int flags)
 	} else {
 		try_tcache_alloc = true;
 		try_tcache_dalloc = true;
-		arena = NULL;
+		arena = choose_arena(NULL);
 	}
 
 	if ((config_prof && opt_prof) || config_stats ||
@@ -1707,7 +1717,7 @@ je_xallocx(void *ptr, size_t size, size_t extra, int flags)
 	if (arena_ind != UINT_MAX)
 		arena = arenas[arena_ind];
 	else
-		arena = NULL;
+		arena = choose_arena(NULL);
 
 	old_usize = isalloc(ptr, config_prof);
 	if (config_valgrind && opt_valgrind)

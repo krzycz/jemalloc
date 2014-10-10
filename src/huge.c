@@ -18,7 +18,7 @@ static extent_tree_t	huge;
 void *
 huge_malloc(size_t size, bool zero, dss_prec_t dss_prec
 #ifdef JEMALLOC_ENABLE_MEMKIND
-, int partition
+, unsigned partition
 #endif
 )
 {
@@ -33,7 +33,7 @@ huge_malloc(size_t size, bool zero, dss_prec_t dss_prec
 void *
 huge_palloc(size_t size, size_t alignment, bool zero, dss_prec_t dss_prec
 #ifdef JEMALLOC_ENABLE_MEMKIND
-, int partition
+, unsigned partition
 #endif
 )
 {
@@ -119,7 +119,7 @@ void *
 huge_ralloc(void *ptr, size_t oldsize, size_t size, size_t extra,
     size_t alignment, bool zero, bool try_tcache_dalloc, dss_prec_t dss_prec
 #ifdef JEMALLOC_ENABLE_MEMKIND
-, int partition
+, unsigned partition
 #endif
 )
 {
