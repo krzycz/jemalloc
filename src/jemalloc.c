@@ -11,7 +11,7 @@ malloc_tsd_data(, thread_allocated, thread_allocated_t,
 /* Runtime configuration options. */
 const char	*je_malloc_conf;
 bool	opt_abort =
-#ifdef JEMALLOC_DEBUG
+#if (defined(JEMALLOC_DEBUG) || defined(JEMALLOC_SAFE))
     true
 #else
     false
@@ -620,6 +620,7 @@ malloc_conf_init(void)
 				    "lg_tcache_max", -1,
 				    (sizeof(size_t) << 3) - 1)
 			}
+#ifdef JEMALLOC_PROF
 			if (config_prof) {
 				CONF_HANDLE_BOOL(opt_prof, "prof")
 				CONF_HANDLE_CHAR_P(opt_prof_prefix,
@@ -636,6 +637,7 @@ malloc_conf_init(void)
 				CONF_HANDLE_BOOL(opt_prof_final, "prof_final")
 				CONF_HANDLE_BOOL(opt_prof_leak, "prof_leak")
 			}
+#endif
 			malloc_conf_error("Invalid conf pair", k, klen, v,
 			    vlen);
 #undef CONF_HANDLE_BOOL
@@ -740,32 +742,38 @@ malloc_init_hard(void)
 	arenas_extend(0);
 	if (arenas[0] == NULL) {
 		malloc_mutex_unlock(&init_lock);
+		assert(false);
 		return (true);
 	}
 
 	/* Initialize allocation counters before any allocations can occur. */
 	if (config_stats && thread_allocated_tsd_boot()) {
 		malloc_mutex_unlock(&init_lock);
+		assert(false);
 		return (true);
 	}
 
 	if (arenas_tsd_boot()) {
 		malloc_mutex_unlock(&init_lock);
+		assert(false);
 		return (true);
 	}
 
 	if (config_tcache && tcache_boot1()) {
 		malloc_mutex_unlock(&init_lock);
+		assert(false);
 		return (true);
 	}
 
 	if (config_fill && quarantine_boot()) {
 		malloc_mutex_unlock(&init_lock);
+		assert(false);
 		return (true);
 	}
 
 	if (config_prof && prof_boot2()) {
 		malloc_mutex_unlock(&init_lock);
+		assert(false);
 		return (true);
 	}
 
@@ -2076,7 +2084,11 @@ a0alloc(size_t size, bool zero)
 	if (size <= arena_maxclass)
 		return (arena_malloc(arenas[0], size, zero, false));
 	else
-		return (huge_malloc(size, zero));
+		return (huge_malloc(size, zero
+#ifdef JEMALLOC_ENABLE_MEMKIND
+, 0
+#endif
+));
 }
 
 void *
