@@ -1,7 +1,7 @@
 
 Summary: A general-purpose scalable concurrent malloc(3)
 Name: jemalloc
-Version: 3.5.1+mk2
+Version: 3.5.1+mk3
 Release: 0
 License: See COPYING
 Group: System Environment/Libraries
@@ -47,7 +47,7 @@ distribution.  This package includes extensions for the memkind
 library.  Package installs header files and libraries for development.
 
 %build
-%{__autoconf}
+test -f configure || %{__autoconf}
 %{__mkdir_p} obj
 cd obj
 %if %{defined suse_version}

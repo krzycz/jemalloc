@@ -1,9 +1,7 @@
 #define	JEMALLOC_CHUNK_MMAP_C_
 #include "jemalloc/internal/jemalloc_internal.h"
 #ifdef JEMALLOC_ENABLE_MEMKIND
-extern int memkind_partition_get_mmap_flags(int, int *) __attribute__((weak));
-extern int memkind_partition_mbind(int, void *, size_t) __attribute__((weak));
-extern void memkind_error_message(int, char *, size_t) __attribute__((weak));
+extern void *memkind_partition_mmap(int, void *, size_t) __attribute__((weak));
 #endif
 
 /******************************************************************************/
@@ -32,7 +30,6 @@ pages_map(void *addr, size_t size
 )
 {
 	void *ret;
-	int flags;
 
 	assert(size != 0);
 
@@ -44,31 +41,20 @@ pages_map(void *addr, size_t size
 	ret = VirtualAlloc(addr, size, MEM_COMMIT | MEM_RESERVE,
 	    PAGE_READWRITE);
 #else
+#ifdef JEMALLOC_ENABLE_MEMKIND
+	if (partition && memkind_partition_mmap) {
+		ret = memkind_partition_mmap(partition, addr, size);
+	}
+        else {
+#endif /* JEMALLOC_ENABLE_MEMKIND */
 	/*
 	 * We don't use MAP_FIXED here, because it can cause the *replacement*
 	 * of existing mappings, and we only want to create new mappings.
 	 */
-	flags = MAP_PRIVATE | MAP_ANON;
+	ret = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 #ifdef JEMALLOC_ENABLE_MEMKIND
-	int err;
-	int memkind_flags;
-	if (partition && memkind_partition_get_mmap_flags && memkind_error_message) {
-		err = memkind_partition_get_mmap_flags(partition, &memkind_flags);
-		if (err) {
-			char buf[BUFERROR_BUF];
-
-			memkind_error_message(err, buf, sizeof(buf));
-			malloc_printf("<jemalloc>: Error in memkind_partition_get_mmap_flags(): %s\n",
-			    buf);
-			if (opt_abort)
-				abort();
-		}
-		else {
-			flags = flags | memkind_flags;
-		}
 	}
-#endif
-	ret = mmap(addr, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+#endif /* JEMALLOC_ENABLE_MEMKIND */
 	assert(ret != NULL);
 
 	if (ret == MAP_FAILED)
@@ -88,20 +74,6 @@ pages_map(void *addr, size_t size
 		}
 		ret = NULL;
 	}
-#ifdef JEMALLOC_ENABLE_MEMKIND
-	if (ret && partition && memkind_partition_mbind && memkind_error_message) {
-		err = memkind_partition_mbind(partition, ret, size);
-		if (err) {
-			char buf[BUFERROR_BUF];
-
-			memkind_error_message(err, buf, sizeof(buf));
-			malloc_printf("<jemalloc>: Error in memkind_partition_mbind(): %s\n",
-			    buf);
-			if (opt_abort)
-				abort();
-		}
-	}
-#endif /* JEMALLOC_ENABLE_MEMKIND */
 #endif
 	assert(ret == NULL || (addr == NULL && ret != addr)
 	    || (addr != NULL && ret == addr));
