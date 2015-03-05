@@ -18,6 +18,24 @@ chunk_alloc(void *new_addr, size_t size, size_t alignment, bool *zero,
 	return (old_alloc(new_addr, size, alignment, zero, arena_ind));
 }
 
+chunk_mmap_t *old_mmap;
+chunk_munmap_t *old_munmap;
+
+void *
+chunk_mmap(size_t size, size_t alignment, bool *zero)
+{
+
+	return (old_mmap(size, alignment, zero));
+}
+
+bool
+chunk_munmap(void *chunk, size_t size)
+{
+
+	return (old_munmap(chunk, size));
+}
+
+
 TEST_BEGIN(test_chunk)
 {
 	void *p;
@@ -51,9 +69,45 @@ TEST_BEGIN(test_chunk)
 }
 TEST_END
 
+
+TEST_BEGIN(test_chunk_mmap)
+{
+	void *p;
+	chunk_mmap_t *new_mmap;
+	chunk_munmap_t *new_munmap;
+	size_t old_size, new_size;
+
+	new_mmap = chunk_mmap;
+	new_munmap = chunk_munmap;
+	old_size = sizeof(chunk_mmap_t *);
+	new_size = sizeof(chunk_munmap_t *);
+
+	assert_d_eq(mallctl("arena.0.chunk.mmap", &old_mmap,
+	    &old_size, &new_mmap, new_size), 0,
+	    "Unexpected mmap error");
+	assert_ptr_ne(old_mmap, new_mmap,
+	    "Unexpected mmap error");
+	assert_d_eq(mallctl("arena.0.chunk.munmap", &old_munmap, &old_size,
+	    &new_munmap, new_size), 0, "Unexpected munmap error");
+	assert_ptr_ne(old_munmap, new_munmap, "Unexpected munmap error");
+
+	p = mallocx(42, 0);
+	assert_ptr_ne(p, NULL, "Unexpected mmap error");
+	free(p);
+
+	assert_d_eq(mallctl("arena.0.chunk.mmap", NULL,
+	    NULL, &old_mmap, old_size), 0,
+	    "Unexpected mmap error");
+	assert_d_eq(mallctl("arena.0.chunk.munmap", NULL, NULL, &old_munmap,
+	    old_size), 0, "Unexpected munmap error");
+}
+TEST_END
+
 int
 main(void)
 {
 
-	return (test(test_chunk));
+	return (test(
+	    test_chunk,
+	    test_chunk_mmap));
 }

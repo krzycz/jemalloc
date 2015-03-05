@@ -2667,13 +2667,13 @@ arena_new(unsigned ind)
 	ql_new(&arena->huge);
 	if (malloc_mutex_init(&arena->huge_mtx))
 		return (NULL);
-
 	extent_tree_szad_new(&arena->chunks_szad_cache);
 	extent_tree_ad_new(&arena->chunks_ad_cache);
 	extent_tree_szad_new(&arena->chunks_szad_mmap);
 	extent_tree_ad_new(&arena->chunks_ad_mmap);
 	extent_tree_szad_new(&arena->chunks_szad_dss);
 	extent_tree_ad_new(&arena->chunks_ad_dss);
+
 	if (malloc_mutex_init(&arena->chunks_mtx))
 		return (NULL);
 	ql_new(&arena->node_cache);
@@ -2682,6 +2682,8 @@ arena_new(unsigned ind)
 
 	arena->chunk_alloc = chunk_alloc_default;
 	arena->chunk_dalloc = chunk_dalloc_default;
+	arena->chunk_mmap = chunk_alloc_mmap;
+	arena->chunk_munmap = chunk_dalloc_mmap;
 
 	/* Initialize bins. */
 	for (i = 0; i < NBINS; i++) {

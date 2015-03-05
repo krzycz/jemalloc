@@ -1,2 +1,4 @@
 typedef void *(chunk_alloc_t)(void *, size_t, size_t, bool *, unsigned);
 typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+typedef void *(chunk_mmap_t)(size_t, size_t, bool *);
+typedef bool (chunk_munmap_t)(void *, size_t);

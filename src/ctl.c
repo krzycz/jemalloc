@@ -118,6 +118,8 @@ static void	arena_purge(unsigned arena_ind);
 CTL_PROTO(arena_i_dss)
 CTL_PROTO(arena_i_chunk_alloc)
 CTL_PROTO(arena_i_chunk_dalloc)
+CTL_PROTO(arena_i_chunk_mmap)
+CTL_PROTO(arena_i_chunk_munmap)
 INDEX_PROTO(arena_i)
 CTL_PROTO(arenas_bin_i_size)
 CTL_PROTO(arenas_bin_i_nregs)
@@ -283,7 +285,9 @@ static const ctl_named_node_t	tcache_node[] = {
 
 static const ctl_named_node_t chunk_node[] = {
 	{NAME("alloc"),		CTL(arena_i_chunk_alloc)},
-	{NAME("dalloc"),	CTL(arena_i_chunk_dalloc)}
+	{NAME("dalloc"),	CTL(arena_i_chunk_dalloc)},
+	{NAME("mmap"),		CTL(arena_i_chunk_mmap)},
+	{NAME("munmap"),	CTL(arena_i_chunk_munmap)}
 };
 
 static const ctl_named_node_t arena_i_node[] = {
@@ -1657,6 +1661,59 @@ arena_i_chunk_dalloc_ctl(const size_t *mib, size_t miblen, void *oldp,
 		malloc_mutex_lock(&arena->lock);
 		READ(arena->chunk_dalloc, chunk_dalloc_t *);
 		WRITE(arena->chunk_dalloc, chunk_dalloc_t *);
+	} else {
+		ret = EFAULT;
+		goto label_outer_return;
+	}
+	ret = 0;
+label_return:
+	malloc_mutex_unlock(&arena->lock);
+label_outer_return:
+	malloc_mutex_unlock(&ctl_mtx);
+	return (ret);
+}
+
+static int
+arena_i_chunk_mmap_ctl(const size_t *mib, size_t miblen, void *oldp,
+    size_t *oldlenp, void *newp, size_t newlen)
+{
+	int ret;
+	unsigned arena_ind = mib[1];
+	arena_t *arena;
+
+	malloc_mutex_lock(&ctl_mtx);
+	if (arena_ind < narenas_total_get() && (arena = arena_get(tsd_fetch(),
+	    arena_ind, false, true)) != NULL) {
+		malloc_mutex_lock(&arena->lock);
+		READ(arena->chunk_mmap, chunk_mmap_t *);
+		WRITE(arena->chunk_mmap, chunk_mmap_t *);
+	} else {
+		ret = EFAULT;
+		goto label_outer_return;
+	}
+	ret = 0;
+label_return:
+	malloc_mutex_unlock(&arena->lock);
+label_outer_return:
+	malloc_mutex_unlock(&ctl_mtx);
+	return (ret);
+}
+
+static int
+arena_i_chunk_munmap_ctl(const size_t *mib, size_t miblen, void *oldp,
+    size_t *oldlenp, void *newp, size_t newlen)
+{
+
+	int ret;
+	unsigned arena_ind = mib[1];
+	arena_t *arena;
+
+	malloc_mutex_lock(&ctl_mtx);
+	if (arena_ind < narenas_total_get() && (arena = arena_get(tsd_fetch(),
+	    arena_ind, false, true)) != NULL) {
+		malloc_mutex_lock(&arena->lock);
+		READ(arena->chunk_munmap, chunk_munmap_t *);
+		WRITE(arena->chunk_munmap, chunk_munmap_t *);
 	} else {
 		ret = EFAULT;
 		goto label_outer_return;

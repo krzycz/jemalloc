@@ -193,7 +193,7 @@ chunk_alloc_core(arena_t *arena, void *new_addr, size_t size, size_t alignment,
 	 * Requesting an address is not implemented for chunk_alloc_mmap(), so
 	 * only call it if (new_addr == NULL).
 	 */
-	if (new_addr == NULL && (ret = chunk_alloc_mmap(size, alignment, zero))
+	if (new_addr == NULL && (ret = arena->chunk_mmap(size, alignment, zero))
 	    != NULL)
 		return (ret);
 	/* "secondary" dss. */
@@ -410,7 +410,7 @@ chunk_dalloc_arena(arena_t *arena, void *chunk, size_t size, bool zeroed)
 	if (have_dss && chunk_in_dss(chunk)) {
 		chunk_record(arena, &arena->chunks_szad_dss,
 		    &arena->chunks_ad_dss, false, chunk, size, zeroed);
-	} else if (chunk_dalloc_mmap(chunk, size)) {
+	} else if (arena->chunk_munmap(chunk, size)) {
 		chunk_record(arena, &arena->chunks_szad_mmap,
 		    &arena->chunks_ad_mmap, false, chunk, size, zeroed);
 	}

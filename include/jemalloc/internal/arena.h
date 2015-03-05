@@ -364,6 +364,12 @@ struct arena_s {
 	chunk_alloc_t		*chunk_alloc;
 	chunk_dalloc_t		*chunk_dalloc;
 
+	/*
+	 * User-configurable chunk mmap and munmap functions.
+	 */
+	chunk_mmap_t		*chunk_mmap;
+	chunk_munmap_t		*chunk_munmap;
+
 	/* bins is used to store trees of free regions. */
 	arena_bin_t		bins[NBINS];
 };
