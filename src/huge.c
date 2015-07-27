@@ -61,7 +61,6 @@ huge_palloc(size_t size, size_t alignment, bool zero, dss_prec_t dss_prec
 	 */
 	is_zeroed = zero;
 	ret = chunk_alloc(csize, alignment, false, &is_zeroed, dss_prec
-	    chunk_dss_prec_get()
 #ifdef JEMALLOC_ENABLE_MEMKIND
 , partition
 #endif
